@@ -1,0 +1,100 @@
+---
+title: Version API
+description: Get the version of the Ollama API Proxy
+---
+
+## GET /api/version
+
+Retrieve the current version of the Ollama API Proxy. This endpoint is useful for health checks and version verification.
+
+### Request
+
+This endpoint accepts no parameters. Simply send a GET request:
+
+```bash
+curl http://localhost:11434/api/version
+```
+
+### Response
+
+<ResponseField name="version" type="string">
+  The current version of the Ollama API Proxy.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash Request
+curl http://localhost:11434/api/version
+```
+
+```json Response
+{
+  "version": "1.0.1e"
+}
+```
+
+</CodeGroup>
+
+## Version Format
+
+The version string follows a semantic versioning format with an optional suffix:
+
+- **Major.Minor.Patch**: Standard semantic versioning (e.g., `1.0.1`)
+- **Suffix**: Optional letter suffix for extended releases (e.g., `e` in `1.0.1e`)
+
+## Use Cases
+
+### Health Check
+
+Use this endpoint to verify that the proxy is running and responsive:
+
+```bash
+if curl -f http://localhost:11434/api/version; then
+  echo "Proxy is running"
+else
+  echo "Proxy is not responding"
+fi
+```
+
+### Version Verification
+
+Check the proxy version programmatically:
+
+```javascript
+const response = await fetch('http://localhost:11434/api/version');
+const { version } = await response.json();
+
+if (version === '1.0.1e') {
+  console.log('Running expected version');
+}
+```
+
+### Integration Testing
+
+Verify the proxy is available before running tests:
+
+```python
+import requests
+
+try:
+    response = requests.get('http://localhost:11434/api/version')
+    if response.status_code == 200:
+        version = response.json()['version']
+        print(f"Proxy version: {version}")
+except requests.exceptions.ConnectionError:
+    print("Proxy is not running")
+```
+
+## Implementation Details
+
+The endpoint implementation (from src/index.js:493):
+
+```javascript
+'GET /api/version': (request, response) => sendJSON(response, { version: '1.0.1e' })
+```
+
+<Note>
+  This endpoint always returns a 200 status code with the version information. It does not check provider availability or authentication.
+</Note>

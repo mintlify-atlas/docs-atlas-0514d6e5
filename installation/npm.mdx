@@ -1,0 +1,160 @@
+---
+title: 'Install with npm'
+description: 'Install and run Ollama API Proxy using npm package manager'
+icon: 'npm'
+---
+
+## Prerequisites
+
+Before installing Ollama API Proxy, ensure you have:
+
+- **Node.js** version 18.0.0 or higher
+- **npm** package manager (comes with Node.js)
+- At least one API key from:
+  - OpenAI
+  - Google Gemini
+  - OpenRouter
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the Ollama API Proxy repository from GitHub:
+
+    ```bash
+    git clone https://github.com/xrip/ollama-api-proxy.git
+    cd ollama-api-proxy
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    Install the required npm packages:
+
+    ```bash
+    npm install
+    ```
+
+    This will install the following dependencies:
+    - `@ai-sdk/google` - Google Gemini integration
+    - `@ai-sdk/openai` - OpenAI integration
+    - `ai` - AI SDK core
+    - `dotenv` - Environment variable management
+  </Step>
+
+  <Step title="Configure environment variables">
+    Create a `.env` file in the project root with your API keys:
+
+    <CodeGroup>
+    ```bash All Providers
+    OPENAI_API_KEY=your_openai_api_key
+    GEMINI_API_KEY=your_gemini_api_key
+    OPENROUTER_API_KEY=your_openrouter_api_key
+    OPENROUTER_API_URL=https://openrouter.ai/api/v1
+    PORT=11434
+    ```
+
+    ```bash OpenAI Only
+    OPENAI_API_KEY=your_openai_api_key
+    PORT=11434
+    ```
+
+    ```bash Gemini Only
+    GEMINI_API_KEY=your_gemini_api_key
+    PORT=11434
+    ```
+
+    ```bash OpenRouter Only
+    OPENROUTER_API_KEY=your_openrouter_api_key
+    OPENROUTER_API_URL=https://openrouter.ai/api/v1
+    PORT=11434
+    ```
+    </CodeGroup>
+
+    <Note>
+      You only need to provide API keys for the providers you plan to use. The proxy will automatically detect which providers are available based on the configured API keys.
+    </Note>
+
+    <Tip>
+      The `OPENROUTER_API_URL` is optional and defaults to `https://openrouter.ai/api/v1` if not specified.
+    </Tip>
+  </Step>
+
+  <Step title="Start the server">
+    Launch the proxy server:
+
+    ```bash
+    npm start
+    ```
+
+    You should see output similar to:
+
+    ```
+    🚀 Ollama Proxy with Streaming running on http://localhost:11434
+    🔑 Providers: openai, google, openrouter
+    📋 Available models: gpt-4o-mini, gpt-4.1-mini, gemini-2.5-flash, deepseek-r1
+    ```
+  </Step>
+</Steps>
+
+## Verify Installation
+
+Test that the server is running correctly:
+
+```bash
+curl http://localhost:11434/api/version
+```
+
+You should receive a JSON response:
+
+```json
+{
+  "version": "1.0.1e"
+}
+```
+
+## Custom Model Configuration
+
+You can customize available models by creating a `models.json` file in the project root:
+
+```json models.json
+{
+  "my-custom-gpt": { 
+    "provider": "openai", 
+    "model": "gpt-4o-mini" 
+  },
+  "my-gemini-pro": { 
+    "provider": "google", 
+    "model": "gemini-pro" 
+  },
+  "my-openrouter-model": { 
+    "provider": "openrouter", 
+    "model": "mistralai/mistral-7b-instruct-v0.2" 
+  }
+}
+```
+
+<Warning>
+  If no API keys are configured, the server will exit with an error:
+  ```
+  ❌ No API keys found. Set OPENAI_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY
+  ```
+</Warning>
+
+## Development Mode
+
+For development with hot reloading (requires Bun):
+
+```bash
+bun run dev
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configure JetBrains" icon="code" href="/guides/jetbrains-ai-assistant">
+    Set up JetBrains AI Assistant with the proxy
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/overview">
+    Explore available API endpoints
+  </Card>
+</CardGroup>

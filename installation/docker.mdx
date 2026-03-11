@@ -1,0 +1,331 @@
+---
+title: 'Deploy with Docker'
+description: 'Run Ollama API Proxy in a Docker container for easy deployment'
+icon: 'docker'
+---
+
+## Overview
+
+Docker provides a containerized environment for running Ollama API Proxy, ensuring consistent behavior across different systems and simplifying deployment.
+
+## Prerequisites
+
+- **Docker** installed on your system ([Install Docker](https://docs.docker.com/get-docker/))
+- At least one API key from OpenAI, Google Gemini, or OpenRouter
+
+## Dockerfile Details
+
+The project uses the following Dockerfile (see `Dockerfile:1-12`):
+
+```dockerfile Dockerfile
+FROM oven/bun:alpine
+LABEL authors="xrip"
+
+WORKDIR /application
+COPY .env package.json models.json ./src/*.js ./
+
+RUN bun install --backend=hardlink
+
+EXPOSE 11434
+CMD ["bun", "./index.js"]
+```
+
+<Note>
+  The Dockerfile uses the **Bun** runtime (`oven/bun:alpine`) instead of Node.js for better performance and faster startup times.
+</Note>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the Ollama API Proxy repository:
+
+    ```bash
+    git clone https://github.com/xrip/ollama-api-proxy.git
+    cd ollama-api-proxy
+    ```
+  </Step>
+
+  <Step title="Create environment file">
+    Create a `.env` file with your API keys:
+
+    <CodeGroup>
+    ```bash Using echo
+    echo "OPENAI_API_KEY=your_openai_api_key" > .env
+    echo "GEMINI_API_KEY=your_gemini_api_key" >> .env
+    echo "OPENROUTER_API_KEY=your_openrouter_api_key" >> .env
+    echo "OPENROUTER_API_URL=https://openrouter.ai/api/v1" >> .env
+    ```
+
+    ```bash Manual .env
+    OPENAI_API_KEY=your_openai_api_key
+    GEMINI_API_KEY=your_gemini_api_key
+    OPENROUTER_API_KEY=your_openrouter_api_key
+    OPENROUTER_API_URL=https://openrouter.ai/api/v1
+    PORT=11434
+    ```
+    </CodeGroup>
+
+    <Warning>
+      The `.env` file must be present before building the Docker image, as it's copied during the build process (see `Dockerfile:5`).
+    </Warning>
+  </Step>
+
+  <Step title="Build the Docker image">
+    Build the Docker image:
+
+    ```bash
+    docker build -t ollama-proxy .
+    ```
+
+    This command:
+    - Uses the Bun Alpine base image
+    - Copies `.env`, `package.json`, `models.json`, and source files
+    - Installs dependencies using `bun install --backend=hardlink`
+    - Exposes port 11434
+  </Step>
+
+  <Step title="Run the container">
+    Start the container:
+
+    ```bash
+    docker run -p 11434:11434 --env-file .env ollama-proxy
+    ```
+
+    Expected output:
+    ```
+    🚀 Ollama Proxy with Streaming running on http://localhost:11434
+    🔑 Providers: openai, google, openrouter
+    📋 Available models: gpt-4o-mini, gpt-4.1-mini, gemini-2.5-flash, deepseek-r1
+    ```
+  </Step>
+</Steps>
+
+## Docker Run Options
+
+### Run in Detached Mode
+
+Run the container in the background:
+
+```bash
+docker run -d -p 11434:11434 --env-file .env --name ollama-proxy ollama-proxy
+```
+
+### Custom Port Mapping
+
+Map to a different host port:
+
+```bash
+docker run -p 8080:11434 --env-file .env ollama-proxy
+```
+
+Access the proxy at `http://localhost:8080`.
+
+### Pass Environment Variables Directly
+
+Instead of using `--env-file`, pass variables directly:
+
+```bash
+docker run -p 11434:11434 \
+  -e OPENAI_API_KEY=your_key \
+  -e GEMINI_API_KEY=your_key \
+  -e OPENROUTER_API_KEY=your_key \
+  ollama-proxy
+```
+
+### Mount Custom Models Configuration
+
+Mount a custom `models.json` file:
+
+```bash
+docker run -p 11434:11434 \
+  --env-file .env \
+  -v $(pwd)/models.json:/application/models.json \
+  ollama-proxy
+```
+
+## Docker Compose
+
+Create a `docker-compose.yml` file for easier management:
+
+```yaml docker-compose.yml
+version: '3.8'
+
+services:
+  ollama-proxy:
+    build: .
+    container_name: ollama-proxy
+    ports:
+      - "11434:11434"
+    env_file:
+      - .env
+    volumes:
+      - ./models.json:/application/models.json
+    restart: unless-stopped
+```
+
+Run with Docker Compose:
+
+```bash
+# Start the service
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the service
+docker-compose down
+```
+
+## Container Management
+
+### View Running Containers
+
+```bash
+docker ps
+```
+
+### View Container Logs
+
+```bash
+docker logs ollama-proxy
+
+# Follow logs in real-time
+docker logs -f ollama-proxy
+```
+
+### Stop the Container
+
+```bash
+docker stop ollama-proxy
+```
+
+### Remove the Container
+
+```bash
+docker rm ollama-proxy
+```
+
+### Restart the Container
+
+```bash
+docker restart ollama-proxy
+```
+
+## Verify Installation
+
+Test the proxy server:
+
+```bash
+curl http://localhost:11434/api/version
+```
+
+Expected response:
+```json
+{
+  "version": "1.0.1e"
+}
+```
+
+List available models:
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+## Production Deployment
+
+### Using Docker Hub
+
+Tag and push your image to Docker Hub:
+
+```bash
+# Tag the image
+docker tag ollama-proxy yourusername/ollama-proxy:1.0.4
+
+# Push to Docker Hub
+docker push yourusername/ollama-proxy:1.0.4
+
+# Pull and run on another machine
+docker run -p 11434:11434 --env-file .env yourusername/ollama-proxy:1.0.4
+```
+
+### Health Checks
+
+Add a health check to your Docker run command:
+
+```bash
+docker run -d -p 11434:11434 \
+  --env-file .env \
+  --health-cmd="curl -f http://localhost:11434/api/version || exit 1" \
+  --health-interval=30s \
+  --health-timeout=10s \
+  --health-retries=3 \
+  --name ollama-proxy \
+  ollama-proxy
+```
+
+### Resource Limits
+
+Limit container resources:
+
+```bash
+docker run -d -p 11434:11434 \
+  --env-file .env \
+  --memory="512m" \
+  --cpus="1.0" \
+  --name ollama-proxy \
+  ollama-proxy
+```
+
+## Troubleshooting
+
+### Build Fails - Missing .env File
+
+Ensure `.env` exists before building:
+```bash
+ls -la .env
+```
+
+If missing, create it with at least one API key.
+
+### Port Already in Use
+
+If port 11434 is in use:
+```bash
+docker run -p 8080:11434 --env-file .env ollama-proxy
+```
+
+### Container Exits Immediately
+
+Check logs for errors:
+```bash
+docker logs ollama-proxy
+```
+
+Common causes:
+- Missing or invalid API keys
+- Syntax errors in `.env` file
+
+### Cannot Connect to Proxy
+
+Verify the container is running:
+```bash
+docker ps | grep ollama-proxy
+```
+
+Check port binding:
+```bash
+docker port ollama-proxy
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configure JetBrains" icon="code" href="/guides/jetbrains-ai-assistant">
+    Set up JetBrains AI Assistant with the proxy
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/overview">
+    Explore available API endpoints
+  </Card>
+</CardGroup>

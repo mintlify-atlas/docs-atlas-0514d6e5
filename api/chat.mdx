@@ -1,0 +1,243 @@
+---
+title: Chat API
+description: Generate chat completions with conversation history
+---
+
+## POST /api/chat
+
+Generate a response based on a conversation history. This endpoint supports multi-turn conversations, streaming responses, and vision capabilities (images).
+
+### Request Body
+
+<ParamField path="model" type="string" required>
+  The name of the model to use. Must be one of the available models from your `models.json` configuration or built-in models (e.g., `gpt-4o-mini`, `gemini-2.5-flash`, `deepseek-r1`).
+</ParamField>
+
+<ParamField path="messages" type="array" required>
+  Array of message objects representing the conversation history. Each message should have a `role` and `content`.
+  
+  <ParamField path="messages[].role" type="string" required>
+    The role of the message author. Either `user` or `assistant`.
+  </ParamField>
+  
+  <ParamField path="messages[].content" type="string | array" required>
+    The content of the message. Can be a string for text-only messages, or an array of content blocks for messages with images.
+  </ParamField>
+  
+  <ParamField path="messages[].images" type="array">
+    Optional array of images in base64 format or HTTP(S) URLs. Used for vision-capable models.
+  </ParamField>
+</ParamField>
+
+<ParamField path="stream" type="boolean" default="false">
+  Enable streaming responses. When `true`, responses are returned as newline-delimited JSON chunks.
+</ParamField>
+
+<ParamField path="context" type="array" default="[]">
+  Optional context array for maintaining conversation state across requests.
+</ParamField>
+
+<ParamField path="options" type="object">
+  Optional parameters to control generation behavior.
+  
+  <ParamField path="options.temperature" type="number">
+    Controls randomness in generation (0.0 to 1.0). Higher values make output more creative.
+  </ParamField>
+  
+  <ParamField path="options.top_p" type="number">
+    Nucleus sampling parameter (0.0 to 1.0). Controls diversity of generated text.
+  </ParamField>
+  
+  <ParamField path="options.num_predict" type="number">
+    Maximum number of tokens to generate.
+  </ParamField>
+</ParamField>
+
+### Response
+
+#### Non-Streaming Response
+
+<ResponseField name="model" type="string">
+  The name of the model used.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp of when the response was created.
+</ResponseField>
+
+<ResponseField name="message" type="object">
+  The generated message.
+  
+  <ResponseField name="message.role" type="string">
+    Always `assistant`.
+  </ResponseField>
+  
+  <ResponseField name="message.content" type="string">
+    The generated text content.
+  </ResponseField>
+  
+  <ResponseField name="message.reasoning" type="string">
+    Optional reasoning chain (for models like DeepSeek R1 that support reasoning).
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="done" type="boolean">
+  Always `true` for non-streaming responses.
+</ResponseField>
+
+<ResponseField name="context" type="array">
+  Context array that can be passed to subsequent requests.
+</ResponseField>
+
+#### Streaming Response
+
+When `stream: true`, the response is sent as newline-delimited JSON chunks:
+
+<ResponseField name="model" type="string">
+  The name of the model used.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp for this chunk.
+</ResponseField>
+
+<ResponseField name="message" type="object">
+  The message chunk.
+  
+  <ResponseField name="message.role" type="string">
+    Always `assistant`.
+  </ResponseField>
+  
+  <ResponseField name="message.content" type="string">
+    The text delta for this chunk (empty string in final chunk).
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="done" type="boolean">
+  `false` for intermediate chunks, `true` for the final chunk.
+</ResponseField>
+
+<ResponseField name="context" type="array">
+  Context array (only present in final chunk).
+</ResponseField>
+
+### Examples
+
+<CodeGroup>
+
+```bash Non-Streaming Chat
+curl -X POST http://localhost:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Why is the sky blue?"
+      }
+    ]
+  }'
+```
+
+```bash Streaming Chat
+curl -X POST http://localhost:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Tell me a short story"
+      }
+    ],
+    "stream": true
+  }'
+```
+
+```bash Multi-Turn Conversation
+curl -X POST http://localhost:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is 2+2?"
+      },
+      {
+        "role": "assistant",
+        "content": "2+2 equals 4."
+      },
+      {
+        "role": "user",
+        "content": "What about 2+3?"
+      }
+    ]
+  }'
+```
+
+```bash Chat with Image (Vision)
+curl -X POST http://localhost:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is in this image?",
+        "images": ["/9j/4AAQSkZJRg...base64-encoded-jpeg..."]
+      }
+    ]
+  }'
+```
+
+```bash With Options
+curl -X POST http://localhost:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Write a creative poem"
+      }
+    ],
+    "options": {
+      "temperature": 0.8,
+      "top_p": 0.9,
+      "num_predict": 100
+    }
+  }'
+```
+
+</CodeGroup>
+
+### Response Examples
+
+<CodeGroup>
+
+```json Non-Streaming Response
+{
+  "model": "gpt-4o-mini",
+  "created_at": "2026-03-11T10:30:00.000Z",
+  "message": {
+    "role": "assistant",
+    "content": "The sky appears blue because of a phenomenon called Rayleigh scattering..."
+  },
+  "done": true,
+  "context": []
+}
+```
+
+```json Streaming Response Chunks
+{"model":"gpt-4o-mini","created_at":"2026-03-11T10:30:00.000Z","message":{"role":"assistant","content":"The"},"done":false}
+{"model":"gpt-4o-mini","created_at":"2026-03-11T10:30:00.001Z","message":{"role":"assistant","content":" sky"},"done":false}
+{"model":"gpt-4o-mini","created_at":"2026-03-11T10:30:00.002Z","message":{"role":"assistant","content":" appears"},"done":false}
+{"model":"gpt-4o-mini","created_at":"2026-03-11T10:30:00.100Z","message":{"role":"assistant","content":""},"done":true,"context":[]}
+```
+
+</CodeGroup>
+
+<Note>
+  Vision support requires JPEG images provided as base64 strings or HTTP(S) URLs. The proxy automatically converts them to data URLs for vision-capable models.
+</Note>

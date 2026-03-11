@@ -1,0 +1,205 @@
+---
+title: 'Run with npx'
+description: 'Run Ollama API Proxy directly using npx without installation'
+icon: 'bolt'
+---
+
+## Overview
+
+The `npx` method allows you to run Ollama API Proxy without cloning the repository or installing it globally. This is the fastest way to get started.
+
+<Tip>
+  npx automatically downloads and executes the latest version of the package, making it perfect for quick testing or one-time usage.
+</Tip>
+
+## Prerequisites
+
+- **Node.js** version 18.0.0 or higher
+- At least one API key from OpenAI, Google Gemini, or OpenRouter
+
+## Quick Start
+
+<Steps>
+  <Step title="Create configuration directory">
+    Create a directory for your configuration files:
+
+    ```bash
+    mkdir ollama-proxy-config
+    cd ollama-proxy-config
+    ```
+  </Step>
+
+  <Step title="Set up environment variables">
+    Create a `.env` file with your API keys:
+
+    <CodeGroup>
+    ```bash All Providers
+    OPENAI_API_KEY=your_openai_api_key
+    GEMINI_API_KEY=your_gemini_api_key
+    OPENROUTER_API_KEY=your_openrouter_api_key
+    OPENROUTER_API_URL=https://openrouter.ai/api/v1
+    PORT=11434
+    ```
+
+    ```bash Single Line Setup
+    echo "OPENAI_API_KEY=your_openai_api_key" > .env
+    echo "GEMINI_API_KEY=your_gemini_api_key" >> .env
+    echo "OPENROUTER_API_KEY=your_openrouter_api_key" >> .env
+    ```
+    </CodeGroup>
+
+    <Note>
+      The proxy will load the `.env` file from your current working directory using the `dotenv` package.
+    </Note>
+  </Step>
+
+  <Step title="Run the proxy server">
+    Execute the proxy using npx:
+
+    ```bash
+    npx ollama-api-proxy
+    ```
+
+    The first time you run this command, npx will download the package. Subsequent runs will use the cached version.
+
+    Expected output:
+    ```
+    🚀 Ollama Proxy with Streaming running on http://localhost:11434
+    🔑 Providers: openai, google, openrouter
+    📋 Available models: gpt-4o-mini, gpt-4.1-mini, gemini-2.5-flash, deepseek-r1
+    ```
+  </Step>
+</Steps>
+
+## Advanced Usage
+
+### Specify Package Version
+
+Run a specific version of the proxy:
+
+```bash
+npx ollama-api-proxy@1.0.4
+```
+
+### Use Latest Version
+
+Force npx to fetch the latest version:
+
+```bash
+npx --yes ollama-api-proxy@latest
+```
+
+### Run with Custom Port
+
+Specify a custom port via environment variable:
+
+```bash
+PORT=8080 npx ollama-api-proxy
+```
+
+## Custom Model Configuration
+
+Create a `models.json` file in your working directory to customize available models:
+
+```json models.json
+{
+  "gpt-4o": { 
+    "provider": "openai", 
+    "model": "gpt-4o" 
+  },
+  "gemini-flash": { 
+    "provider": "google", 
+    "model": "gemini-2.5-flash" 
+  },
+  "deepseek": { 
+    "provider": "openrouter", 
+    "model": "deepseek/deepseek-r1-0528:free" 
+  }
+}
+```
+
+The proxy automatically loads `models.json` from the current working directory (see `src/index.js:124`).
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `OPENAI_API_KEY` | Conditional* | - | OpenAI API key |
+| `GEMINI_API_KEY` | Conditional* | - | Google Gemini API key |
+| `OPENROUTER_API_KEY` | Conditional* | - | OpenRouter API key |
+| `OPENROUTER_API_URL` | No | `https://openrouter.ai/api/v1` | OpenRouter API endpoint |
+| `PORT` | No | `11434` | Server port |
+| `NODE_ENV` | No | - | Environment mode (`production` or `development`) |
+
+<Note>
+  *At least one API key is required. The proxy will exit with an error if no keys are configured.
+</Note>
+
+## Verify Installation
+
+Test the proxy server:
+
+```bash
+curl http://localhost:11434/api/version
+```
+
+Response:
+```json
+{
+  "version": "1.0.1e"
+}
+```
+
+List available models:
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+## Using with Bun
+
+If you have Bun installed (version 1.2.0 or higher), you can use `bunx` for faster execution:
+
+```bash
+bunx ollama-api-proxy
+```
+
+<Tip>
+  Bun offers faster startup times and better performance compared to Node.js.
+</Tip>
+
+## Troubleshooting
+
+### No API Keys Found
+
+If you see this error:
+```
+❌ No API keys found. Set OPENAI_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY
+```
+
+Ensure your `.env` file exists in the current working directory and contains at least one valid API key.
+
+### Port Already in Use
+
+If port 11434 is already in use:
+```bash
+PORT=8080 npx ollama-api-proxy
+```
+
+### Package Not Found
+
+If npx cannot find the package, verify the package name:
+```bash
+npm view ollama-api-proxy
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Docker Installation" icon="docker" href="/installation/docker">
+    Deploy using Docker containers
+  </Card>
+  <Card title="Usage Guide" icon="book" href="/guides/jetbrains-ai-assistant">
+    Configure JetBrains AI Assistant
+  </Card>
+</CardGroup>

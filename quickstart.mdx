@@ -1,80 +1,271 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart'
+description: 'Get your Ollama API Proxy running in under 5 minutes'
+icon: 'rocket'
 ---
 
-## Get started in three steps
+<Note>
+  This guide will help you set up the Ollama API Proxy and test it with a real request. You'll be able to use commercial LLMs like OpenAI, Google Gemini, and OpenRouter with tools that support the Ollama API format.
+</Note>
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before you begin, ensure you have:
+- **Node.js 18.0.0 or higher** OR **Bun 1.2.0 or higher**
+- At least one API key from:
+  - [OpenAI](https://platform.openai.com/api-keys)
+  - [Google AI Studio](https://aistudio.google.com/apikey) (for Gemini)
+  - [OpenRouter](https://openrouter.ai/keys)
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+## Quick Start with npx/bunx
+
+<Tip>
+  The fastest way to get started is using `npx` (Node.js) or `bunx` (Bun) - no installation required!
+</Tip>
+
+<Steps>
+  <Step title="Create a configuration directory">
+    Create a dedicated directory for your proxy configuration:
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash
+    mkdir ollama-proxy-config
+    cd ollama-proxy-config
+    ```
+  </Step>
 
-### Step 2: Deploy your changes
+  <Step title="Set up environment variables">
+    Create a `.env` file with your API keys. You only need to include the providers you want to use:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    <CodeGroup>
+    ```bash .env (All Providers)
+    OPENAI_API_KEY=sk-proj-...
+    GEMINI_API_KEY=AIzaSy...
+    OPENROUTER_API_KEY=sk-or-v1-...
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    ```bash .env (OpenAI Only)
+    OPENAI_API_KEY=sk-proj-...
+    ```
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash .env (Gemini Only)
+    GEMINI_API_KEY=AIzaSy...
+    ```
 
-### Step 3: Go live
+    ```bash .env (OpenRouter Only)
+    OPENROUTER_API_KEY=sk-or-v1-...
+    ```
+    </CodeGroup>
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    <Warning>
+      At least one API key is required. The proxy will exit with an error if no API keys are found.
+    </Warning>
 
-## Next steps
+    **Optional configuration:**
+    ```bash
+    PORT=11434  # Default port (same as Ollama)
+    OPENROUTER_API_URL=https://openrouter.ai/api/v1  # Custom OpenRouter URL
+    NODE_ENV=production  # Set to 'production' to disable timestamps in logs
+    ```
+  </Step>
 
-Now that you have your docs running, explore these key features:
+  <Step title="Start the proxy server">
+    Run the proxy using `npx` or `bunx`:
+
+    <CodeGroup>
+    ```bash npx (Node.js)
+    npx ollama-api-proxy
+    ```
+
+    ```bash bunx (Bun)
+    bunx ollama-api-proxy
+    ```
+    </CodeGroup>
+
+    You should see output similar to:
+    ```
+    ✅ Loaded models from models.json
+    🚀 Ollama Proxy with Streaming running on http://localhost:11434
+    🔑 Providers: openai, google, openrouter
+    📋 Available models: gpt-4o-mini, gpt-4.1-mini, gpt-4.1-nano, gpt-4o, gemini-2.5-flash, gemini-2.5-flash-lite, deepseek-r1
+    ```
+  </Step>
+
+  <Step title="Verify the server is running">
+    Open a new terminal and check the server status:
+
+    ```bash
+    curl http://localhost:11434/api/version
+    ```
+
+    Expected response:
+    ```json
+    {"version":"1.0.1e"}
+    ```
+
+    List available models:
+    ```bash
+    curl http://localhost:11434/api/tags
+    ```
+
+    This will return all available models based on your configured API keys.
+  </Step>
+
+  <Step title="Test with a sample request">
+    Send a test chat completion request:
+
+    ```bash
+    curl -X POST http://localhost:11434/api/chat \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Say hello!"
+          }
+        ],
+        "stream": false
+      }'
+    ```
+
+    <Tip>
+      Try different models like `gemini-2.5-flash` or `deepseek-r1` if you have the corresponding API keys configured!
+    </Tip>
+
+    For streaming responses, set `"stream": true`:
+    ```bash
+    curl -X POST http://localhost:11434/api/chat \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Write a haiku about coding"
+          }
+        ],
+        "stream": true
+      }'
+    ```
+  </Step>
+</Steps>
+
+## Configure JetBrains AI Assistant
+
+Now that your proxy is running, you can connect JetBrains AI Assistant to use commercial LLMs:
+
+<Steps>
+  <Step title="Open JetBrains AI Assistant settings">
+    In your JetBrains IDE:
+    1. Go to **Settings/Preferences** → **Tools** → **AI Assistant**
+    2. Select **Ollama** as your provider
+  </Step>
+
+  <Step title="Configure the Ollama URL">
+    Set the Ollama server URL to:
+    ```
+    http://localhost:11434
+    ```
+  </Step>
+
+  <Step title="Select your model">
+    Choose one of the available models from the dropdown:
+    - **gpt-4o-mini** - Fast and efficient OpenAI model (recommended for most tasks)
+    - **gpt-4o** - More capable OpenAI model
+    - **gemini-2.5-flash** - Google's fast model with large context
+    - **deepseek-r1** - Free reasoning model via OpenRouter
+
+    <Tip>
+      The `gpt-4o-mini` model offers the best balance of speed and quality for most coding tasks.
+    </Tip>
+  </Step>
+
+  <Step title="Start using AI Assistant">
+    You can now use JetBrains AI Assistant with your chosen commercial LLM! Try:
+    - Code completion and suggestions
+    - Explaining code
+    - Generating tests
+    - Refactoring assistance
+  </Step>
+</Steps>
+
+## Supported API Endpoints
+
+The proxy implements the following Ollama-compatible endpoints:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="/api/chat" icon="comments" href="/api/chat">
+    Chat completion with message history support
+  </Card>
+  <Card title="/api/generate" icon="wand-magic-sparkles" href="/api/generate">
+    Single-turn text generation from a prompt
+  </Card>
+  <Card title="/api/tags" icon="tags" href="/api/tags">
+    List all available models
+  </Card>
+  <Card title="/api/version" icon="code-branch" href="/api/version">
+    Get proxy version information
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="book" href="/api/chat">
+    Explore all available API endpoints and parameters
+  </Card>
+  <Card title="Model Configuration" icon="gear" href="/configuration/custom-models">
+    Customize available models with models.json
+  </Card>
+  <Card title="Environment Variables" icon="sliders" href="/configuration/environment-variables">
+    Learn about all configuration options
+  </Card>
+  <Card title="Installation Methods" icon="download" href="/installation/npm">
+    Explore alternative installation methods (npm, Docker, etc.)
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: No API keys found">
+    Make sure you have at least one API key set in your `.env` file:
+    ```bash
+    OPENAI_API_KEY=your_key_here
+    # OR
+    GEMINI_API_KEY=your_key_here
+    # OR
+    OPENROUTER_API_KEY=your_key_here
+    ```
+    The proxy requires at least one valid API key to start.
+  </Accordion>
+
+  <Accordion title="Error: Model not supported">
+    The requested model doesn't exist in your configuration. Check available models:
+    ```bash
+    curl http://localhost:11434/api/tags
+    ```
+    Make sure you have the required API key for the model's provider.
+  </Accordion>
+
+  <Accordion title="Error: Provider not available">
+    The model's provider doesn't have a valid API key configured. For example:
+    - `gpt-4o-mini` requires `OPENAI_API_KEY`
+    - `gemini-2.5-flash` requires `GEMINI_API_KEY`
+    - `deepseek-r1` requires `OPENROUTER_API_KEY`
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    If port 11434 is already in use (e.g., by Ollama itself), change the port:
+    ```bash .env
+    PORT=11435
+    ```
+    Then update your client configuration to use `http://localhost:11435`.
+  </Accordion>
+
+  <Accordion title="Connection refused in JetBrains">
+    1. Verify the proxy is running: `curl http://localhost:11434/api/version`
+    2. Check that no firewall is blocking the connection
+    3. Ensure you're using the correct URL format: `http://localhost:11434` (not `https`)
+  </Accordion>
+</AccordionGroup>

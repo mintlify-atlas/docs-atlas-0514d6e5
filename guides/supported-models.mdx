@@ -1,0 +1,267 @@
+---
+title: "Supported Models"
+description: "Complete list of AI models available through the Ollama API Proxy"
+icon: "list"
+---
+
+The Ollama API Proxy supports multiple AI providers and models. You can customize the available models by editing the `models.json` file in your project root.
+
+## Model configuration
+
+Models are defined in `models.json` with the following structure:
+
+```json
+{
+  "model-name": {
+    "provider": "openai",
+    "model": "actual-model-id"
+  }
+}
+```
+
+- **model-name**: The name clients use to request this model (e.g., `gpt-4o-mini`)
+- **provider**: The AI provider (`openai`, `google`, or `openrouter`)
+- **model**: The actual model identifier used by the provider
+
+<Note>
+  Models are only available if their corresponding provider API key is configured in your `.env` file.
+</Note>
+
+## Default models
+
+The following models are available by default:
+
+### OpenAI models
+
+Requires `OPENAI_API_KEY` in your environment.
+
+<AccordionGroup>
+  <Accordion title="gpt-4o-mini" icon="microchip">
+    **Provider:** OpenAI  
+    **Model ID:** `gpt-4o-mini`  
+    **Description:** Fast, cost-effective model suitable for most tasks
+
+    ```json
+    {
+      "provider": "openai",
+      "model": "gpt-4o-mini"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="gpt-4.1-mini" icon="microchip">
+    **Provider:** OpenAI  
+    **Model ID:** `gpt-4.1-mini`  
+    **Description:** Latest GPT-4.1 mini variant
+
+    ```json
+    {
+      "provider": "openai",
+      "model": "gpt-4.1-mini"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="gpt-4.1-nano" icon="microchip">
+    **Provider:** OpenAI  
+    **Model ID:** `gpt-4.1-nano`  
+    **Description:** Ultra-fast, lightweight model
+
+    ```json
+    {
+      "provider": "openai",
+      "model": "gpt-4.1-nano"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="gpt-4o" icon="microchip">
+    **Provider:** OpenAI  
+    **Model ID:** `gpt-4o`  
+    **Description:** Full GPT-4o model with vision support
+
+    ```json
+    {
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="gpt-5-nano" icon="microchip">
+    **Provider:** OpenAI  
+    **Model ID:** `gpt-5-nano`  
+    **Description:** Next-generation lightweight model
+
+    ```json
+    {
+      "provider": "openai",
+      "model": "gpt-5-nano"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Google models
+
+Requires `GEMINI_API_KEY` in your environment.
+
+<AccordionGroup>
+  <Accordion title="gemini-2.5-flash" icon="bolt">
+    **Provider:** Google  
+    **Model ID:** `gemini-2.5-flash`  
+    **Description:** Fast Gemini model with multimodal capabilities
+
+    ```json
+    {
+      "provider": "google",
+      "model": "gemini-2.5-flash"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="gemini-2.5-flash-lite" icon="bolt">
+    **Provider:** Google  
+    **Model ID:** `gemini-2.5-flash-lite`  
+    **Description:** Lightweight version of Gemini Flash
+
+    ```json
+    {
+      "provider": "google",
+      "model": "gemini-2.5-flash-lite"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### OpenRouter models
+
+Requires `OPENROUTER_API_KEY` in your environment.
+
+<AccordionGroup>
+  <Accordion title="deepseek-r1" icon="brain">
+    **Provider:** OpenRouter  
+    **Model ID:** `deepseek/deepseek-r1-0528:free`  
+    **Description:** Free DeepSeek reasoning model
+
+    ```json
+    {
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-r1-0528:free"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="kimi-k2" icon="stars">
+    **Provider:** OpenRouter  
+    **Model ID:** `moonshotai/kimi-k2:free`  
+    **Description:** Free Kimi K2 model from Moonshot AI
+
+    ```json
+    {
+      "provider": "openrouter",
+      "model": "moonshotai/kimi-k2:free"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Adding custom models
+
+You can add any model supported by your providers:
+
+<Steps>
+  <Step title="Edit models.json">
+    Open the `models.json` file in your project root.
+  </Step>
+
+  <Step title="Add your model configuration">
+    Add a new entry with your desired model name:
+
+    ```json
+    {
+      "my-custom-model": {
+        "provider": "openai",
+        "model": "gpt-4-turbo"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Restart the proxy">
+    Restart the Ollama API Proxy to load the new configuration:
+
+    ```bash
+    npm start
+    ```
+  </Step>
+
+  <Step title="Verify the model is available">
+    Check the startup logs to confirm your model is loaded:
+
+    ```
+    📋 Available models: gpt-4o-mini, ..., my-custom-model
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  For OpenRouter models, you can browse the full catalog at [openrouter.ai/models](https://openrouter.ai/models) and use the model ID in your configuration.
+</Tip>
+
+## Provider setup
+
+Each provider requires an API key configured in your `.env` file:
+
+```bash
+# OpenAI models
+OPENAI_API_KEY=sk-your-openai-key
+
+# Google Gemini models
+GEMINI_API_KEY=your-gemini-key
+
+# OpenRouter models (access to multiple providers)
+OPENROUTER_API_KEY=sk-or-your-openrouter-key
+OPENROUTER_API_URL=https://openrouter.ai/api/v1  # Optional, uses default if not set
+```
+
+<Warning>
+  The proxy will exit with an error if no API keys are configured. You must set at least one provider API key.
+</Warning>
+
+## Checking available models
+
+You can query the proxy to see which models are currently available:
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+Response:
+
+```json
+{
+  "models": [
+    {
+      "name": "gpt-4o-mini",
+      "model": "gpt-4o-mini",
+      "modified_at": "2026-03-11T10:30:00.000Z",
+      "size": 1000000000,
+      "digest": "sha256:gpt4omini"
+    }
+    // ... more models
+  ]
+}
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Vision Support" icon="image" href="/guides/vision-support">
+    Learn how to use vision-capable models
+  </Card>
+
+  <Card title="JetBrains AI Assistant" icon="code" href="/guides/jetbrains-ai-assistant">
+    Configure JetBrains IDE to use the proxy
+  </Card>
+</CardGroup>

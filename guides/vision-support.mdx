@@ -1,0 +1,296 @@
+---
+title: "Vision Support"
+description: "Send images to vision-capable models through the Ollama API Proxy"
+icon: "image"
+---
+
+The Ollama API Proxy supports sending images to vision-capable models using Ollama's image format. Images are automatically converted to the format required by each provider.
+
+## Supported image formats
+
+The proxy accepts images in three formats:
+
+<CardGroup cols={3}>
+  <Card title="Base64 JPEG" icon="binary">
+    Raw base64-encoded JPEG data without a data URL prefix
+  </Card>
+  
+  <Card title="Data URL" icon="link">
+    Complete data URL with JPEG base64 encoding
+  </Card>
+  
+  <Card title="HTTP(S) URL" icon="globe">
+    Public URL to a JPEG image (fetched automatically)
+  </Card>
+</CardGroup>
+
+<Note>
+  Currently, only JPEG images are supported. The proxy converts all formats to `data:image/jpeg;base64,...` for compatibility with vision models.
+</Note>
+
+## How it works
+
+The proxy implements vision support through two key functions:
+
+### Image conversion: `toJpegDataUrl`
+
+Located in `src/index.js:35-58`, this function converts images to JPEG data URLs:
+
+```javascript
+async function toJpegDataUrl(img) {
+  if (!img) return null;
+  if (typeof img !== 'string') throw new Error('Unsupported image type');
+
+  // already a data URL
+  if (img.startsWith('data:image/jpeg;base64,')) return img;
+
+  // raw base64 => wrap as jpeg
+  if (isLikelyBase64(img)) {
+    return `data:image/jpeg;base64,${img}`;
+  }
+
+  // http(s) URL -> fetch -> base64 -> data URL
+  if (/^https?:\/\//i.test(img)) {
+    const resp = await fetch(img);
+    if (!resp.ok) throw new Error(`failed to fetch image: ${resp.status}`);
+    const buf = Buffer.from(await resp.arrayBuffer());
+    return `data:image/jpeg;base64,${buf.toString('base64')}`;
+  }
+
+  throw new Error('Only JPEG base64 strings or http(s) URLs are supported');
+}
+```
+
+### Message building: `buildOpenAIImageBlocksFromOllama`
+
+Located in `src/index.js:60-100`, this function converts Ollama-format messages with images to content blocks:
+
+```javascript
+async function buildOpenAIImageBlocksFromOllama(body) {
+  // Supports two shapes (Ollama compatible):
+  //  A) top-level: { prompt, images: [<base64-or-url>, ...] }
+  //  B) per-message: { messages:[{ role, content, images:[...]}] }
+
+  if (Array.isArray(body.messages) && body.messages.length) {
+    const out = [];
+    for (let i = 0; i < body.messages.length; i++) {
+      const m = body.messages[i];
+      const blocks = [];
+      if (m?.content) blocks.push({ type: 'text', text: m.content });
+      if (Array.isArray(m?.images)) {
+        for (const it of m.images) {
+          const dataUrl = await toJpegDataUrl(it);
+          blocks.push({ type: 'image', image: dataUrl });
+        }
+      }
+      out.push({ 
+        role: m.role || 'user', 
+        content: blocks.length ? blocks : [{ type: 'text', text: '' }] 
+      });
+    }
+    return out;
+  } else {
+    const blocks = [];
+    if (body?.prompt) blocks.push({ type: 'text', text: body.prompt });
+    if (Array.isArray(body?.images)) {
+      for (const it of body.images) {
+        const dataUrl = await toJpegDataUrl(it);
+        blocks.push({ type: 'image', image: dataUrl });
+      }
+    }
+    return [{ role: 'user', content: blocks.length ? blocks : [{ type: 'text', text: '' }] }];
+  }
+}
+```
+
+## Usage examples
+
+### Simple prompt with image (generate API)
+
+Use the `/api/generate` endpoint with a top-level `images` array:
+
+```bash
+curl -X POST http://localhost:11434/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "prompt": "What is in this image?",
+    "images": [
+      "/9j/4AAQSkZJRgABAQEAYABgAAD..."
+    ]
+  }'
+```
+
+### Chat with images (chat API)
+
+Use the `/api/chat` endpoint with images in individual messages:
+
+```bash
+curl -X POST http://localhost:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Describe this image",
+        "images": [
+          "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD..."
+        ]
+      }
+    ]
+  }'
+```
+
+### Using HTTP URLs
+
+The proxy automatically fetches and converts images from URLs:
+
+```bash
+curl -X POST http://localhost:11434/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "prompt": "What do you see in this image?",
+    "images": [
+      "https://example.com/image.jpg"
+    ]
+  }'
+```
+
+<Warning>
+  HTTP URLs must be publicly accessible. The proxy server must be able to fetch the image without authentication.
+</Warning>
+
+### Multiple images
+
+You can include multiple images in a single request:
+
+```bash
+curl -X POST http://localhost:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Compare these two images",
+        "images": [
+          "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD...",
+          "https://example.com/second-image.jpg"
+        ]
+      }
+    ]
+  }'
+```
+
+### Streaming with images
+
+Vision requests work with streaming responses:
+
+```bash
+curl -X POST http://localhost:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "stream": true,
+    "messages": [
+      {
+        "role": "user",
+        "content": "Describe this image in detail",
+        "images": ["data:image/jpeg;base64,..."]
+      }
+    ]
+  }'
+```
+
+The response will stream back as NDJSON:
+
+```json
+{"model":"gpt-4o","created_at":"2026-03-11T10:30:00.000Z","message":{"role":"assistant","content":"This image"},"done":false}
+{"model":"gpt-4o","created_at":"2026-03-11T10:30:00.100Z","message":{"role":"assistant","content":" shows"},"done":false}
+{"model":"gpt-4o","created_at":"2026-03-11T10:30:00.200Z","message":{"role":"assistant","content":""},"done":true}
+```
+
+## Vision-capable models
+
+Not all models support vision. The following default models have vision capabilities:
+
+- **OpenAI:** `gpt-4o`, `gpt-4o-mini`
+- **Google:** `gemini-2.5-flash`, `gemini-2.5-flash-lite`
+
+<Tip>
+  Check the provider's documentation to verify which models support vision before sending image requests.
+</Tip>
+
+## Implementation details
+
+The vision detection logic is in `src/index.js:416-421`:
+
+```javascript
+// Detect Ollama-style images
+const hasTopImages = Array.isArray(body.images) && body.images.length > 0;
+const hasMsgImages = Array.isArray(body.messages) && 
+  body.messages.some(m => Array.isArray(m.images) && m.images.length);
+const useVisionBlocks = hasTopImages || hasMsgImages;
+
+// Build messages (vision-aware)
+const messages = useVisionBlocks
+  ? await buildOpenAIImageBlocksFromOllama(body)
+  : (messageExtractor(body) || []);
+```
+
+When images are detected, the proxy:
+
+1. Converts all images to JPEG data URLs using `toJpegDataUrl`
+2. Builds content blocks with both text and image parts
+3. Sends the structured content to the AI provider
+4. Returns the response in Ollama format
+
+## Error handling
+
+The proxy handles common image errors:
+
+<AccordionGroup>
+  <Accordion title="Unsupported image type">
+    **Error:** `Unsupported image type`
+
+    **Cause:** Image is not a string (e.g., binary data, object)
+
+    **Solution:** Ensure images are base64 strings, data URLs, or HTTP(S) URLs
+  </Accordion>
+
+  <Accordion title="Failed to fetch image">
+    **Error:** `failed to fetch image: 404`
+
+    **Cause:** HTTP URL returned an error status
+
+    **Solution:** 
+    - Verify the URL is correct and publicly accessible
+    - Check that the image exists at the URL
+    - Ensure no authentication is required
+  </Accordion>
+
+  <Accordion title="Only JPEG base64 strings or http(s) URLs are supported">
+    **Error:** `Only JPEG base64 strings or http(s) URLs are supported`
+
+    **Cause:** Image format not recognized (e.g., `file://` path, PNG data URL)
+
+    **Solution:** 
+    - Convert the image to JPEG format
+    - Use base64 encoding without scheme, with `data:image/jpeg;base64,` prefix, or HTTP(S) URL
+    - For local files, read and base64-encode them before sending
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Supported Models" icon="list" href="/guides/supported-models">
+    See which models support vision capabilities
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore the complete API documentation
+  </Card>
+</CardGroup>

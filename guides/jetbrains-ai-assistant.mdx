@@ -1,0 +1,134 @@
+---
+title: "JetBrains AI Assistant"
+description: "Configure JetBrains AI Assistant to use the Ollama API Proxy"
+icon: "code"
+---
+
+Connect JetBrains AI Assistant to the Ollama API Proxy to use OpenAI, Google Gemini, and OpenRouter models through the Ollama API interface.
+
+## Prerequisites
+
+- JetBrains IDE (IntelliJ IDEA, PyCharm, WebStorm, etc.) with AI Assistant plugin installed
+- Ollama API Proxy running locally or on a remote server
+- At least one provider API key configured (OPENAI_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY)
+
+## Configuration
+
+<Steps>
+<Step title="Start the Ollama API Proxy">
+  Ensure the proxy server is running. By default, it runs on `http://localhost:11434`.
+
+  ```bash
+  npm start
+  ```
+
+  You should see output showing available providers and models:
+
+  ```
+  🚀 Ollama Proxy with Streaming running on http://localhost:11434
+  🔑 Providers: openai, google, openrouter
+  📋 Available models: gpt-4o-mini, gpt-4.1-mini, gemini-2.5-flash, deepseek-r1
+  ```
+</Step>
+
+<Step title="Open JetBrains AI Assistant settings">
+  In your JetBrains IDE:
+
+  1. Navigate to **Settings** (or **Preferences** on macOS)
+  2. Go to **Tools** → **AI Assistant**
+  3. Click on **Model Provider**
+</Step>
+
+<Step title="Configure Ollama as the provider">
+  In the Model Provider settings:
+
+  1. Select **Ollama** from the provider dropdown
+  2. Set the **Server URL** to your proxy location:
+     - Local: `http://localhost:11434`
+     - Remote: `http://your-server:11434`
+  3. Click **Test Connection** to verify the connection
+
+  <Tip>
+    If the proxy is running on a different port, update the URL accordingly. The port is configurable via the `PORT` environment variable.
+  </Tip>
+</Step>
+
+<Step title="Select a model">
+  Once connected, you'll see all available models from the proxy:
+
+  - OpenAI models: `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-4.1-nano`, `gpt-4o`, `gpt-5-nano`
+  - Google models: `gemini-2.5-flash`, `gemini-2.5-flash-lite`
+  - OpenRouter models: `deepseek-r1`, `kimi-k2`
+
+  Choose the model you want to use as the default for AI Assistant.
+
+  <Note>
+    The available models depend on which API keys you've configured in your `.env` file. Models will only appear if their corresponding provider is available.
+  </Note>
+</Step>
+
+<Step title="Start using AI Assistant">
+  You're all set! Use JetBrains AI Assistant features:
+
+  - Code completion and suggestions
+  - Chat with AI about your code
+  - Explain code functionality
+  - Generate tests and documentation
+  - Refactor code with AI assistance
+
+  All requests will route through the Ollama API Proxy to your configured providers.
+</Step>
+</Steps>
+
+## Switching between models
+
+You can easily switch between different models:
+
+1. Open the AI Assistant chat panel
+2. Click the model selector at the top
+3. Choose a different model from the available options
+
+This allows you to compare responses from different providers (OpenAI, Google, OpenRouter) without changing your configuration.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection failed">
+    If the test connection fails:
+
+    - Verify the proxy server is running (`curl http://localhost:11434` should return "Ollama is running in proxy mode.")
+    - Check the server URL is correct
+    - Ensure no firewall is blocking the connection
+    - Check the proxy logs for any error messages
+  </Accordion>
+
+  <Accordion title="No models available">
+    If no models appear in the selection:
+
+    - Verify at least one provider API key is configured in your `.env` file
+    - Check the proxy startup logs to see which providers are loaded
+    - Ensure `models.json` exists and is properly formatted
+    - Restart the proxy server after adding new API keys
+  </Accordion>
+
+  <Accordion title="Model not responding">
+    If a selected model doesn't respond:
+
+    - Check the proxy server logs for API errors
+    - Verify your API key for that provider is valid and has sufficient quota
+    - Try a different model to isolate the issue
+    - Check your network connection
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Supported Models" icon="list" href="/guides/supported-models">
+    View all available models and their providers
+  </Card>
+
+  <Card title="Vision Support" icon="image" href="/guides/vision-support">
+    Learn how to use vision models with images
+  </Card>
+</CardGroup>

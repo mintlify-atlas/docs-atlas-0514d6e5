@@ -1,0 +1,76 @@
+---
+title: API Overview
+description: Complete reference for the Ollama API Proxy endpoints
+---
+
+## Base URL
+
+All API requests should be made to:
+
+```
+http://localhost:11434
+```
+
+The port can be configured using the `PORT` environment variable (defaults to 11434).
+
+## Authentication
+
+The Ollama API Proxy does not require authentication. However, you must configure provider API keys (OpenAI, Google Gemini, or OpenRouter) via environment variables for the proxy to function.
+
+## Available Endpoints
+
+The Ollama API Proxy provides the following endpoints:
+
+### Chat Generation
+
+**POST /api/chat**
+
+Generate chat completions with conversation history. Supports both streaming and non-streaming responses.
+
+[View full documentation →](/api/chat)
+
+### Text Generation
+
+**POST /api/generate**
+
+Generate text completions from a single prompt. Supports both streaming and non-streaming responses.
+
+[View full documentation →](/api/generate)
+
+### List Models
+
+**GET /api/tags**
+
+Retrieve a list of available models based on configured providers.
+
+[View full documentation →](/api/tags)
+
+### Version Info
+
+**GET /api/version**
+
+Get the current version of the Ollama API Proxy.
+
+[View full documentation →](/api/version)
+
+## Response Format
+
+All endpoints return JSON responses with appropriate HTTP status codes:
+
+- `200`: Success
+- `404`: Endpoint not found
+- `500`: Internal server error
+
+## CORS Support
+
+All endpoints include CORS headers to allow cross-origin requests:
+
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Content-Type
+```
+
+## Streaming
+
+Streaming responses use the `application/x-ndjson` content type and return newline-delimited JSON objects. Each chunk contains a partial response, with the final chunk marked by `done: true`.

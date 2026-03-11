@@ -1,0 +1,138 @@
+---
+title: Environment Variables
+description: Configure your Ollama API Proxy with environment variables
+---
+
+The Ollama API Proxy uses environment variables to configure API keys, server settings, and behavior. You can set these variables in a `.env` file in your project root or export them in your shell.
+
+## Required Variables
+
+At least one API provider key must be configured for the proxy to start.
+
+<ParamField path="OPENAI_API_KEY" type="string">
+  API key for OpenAI provider. Required if you want to use OpenAI models like `gpt-4o`, `gpt-4o-mini`, etc.
+  
+  ```bash
+  OPENAI_API_KEY=sk-proj-...
+  ```
+  
+  <Note>
+    The proxy will initialize the OpenAI provider only if this key is set (src/index.js:104-106).
+  </Note>
+</ParamField>
+
+<ParamField path="GEMINI_API_KEY" type="string">
+  API key for Google's Gemini provider. Required if you want to use Gemini models like `gemini-2.5-flash`.
+  
+  ```bash
+  GEMINI_API_KEY=AIzaSy...
+  ```
+  
+  <Note>
+    The proxy will initialize the Google provider only if this key is set (src/index.js:107-109).
+  </Note>
+</ParamField>
+
+<ParamField path="OPENROUTER_API_KEY" type="string">
+  API key for OpenRouter provider. Required if you want to use OpenRouter models like `deepseek-r1`.
+  
+  ```bash
+  OPENROUTER_API_KEY=sk-or-v1-...
+  ```
+  
+  <Note>
+    The proxy will initialize the OpenRouter provider only if this key is set (src/index.js:110-117).
+  </Note>
+</ParamField>
+
+<Warning>
+  If no API keys are configured, the proxy will fail to start with the error:
+  
+  ```
+  ❌ No API keys found. Set OPENAI_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY
+  ```
+  
+  This check occurs at src/index.js:119-122.
+</Warning>
+
+## Optional Variables
+
+<ParamField path="PORT" type="number" default="11434">
+  Port number for the HTTP server. Defaults to `11434` to match Ollama's default port.
+  
+  ```bash
+  PORT=3000
+  ```
+  
+  The server will start on `http://localhost:PORT` (src/index.js:20).
+</ParamField>
+
+<ParamField path="OPENROUTER_API_URL" type="string" default="https://openrouter.ai/api/v1">
+  Custom base URL for OpenRouter API. Only used if `OPENROUTER_API_KEY` is set.
+  
+  ```bash
+  OPENROUTER_API_URL=https://openrouter.ai/api/v1
+  ```
+  
+  Useful for testing or using alternative OpenRouter endpoints (src/index.js:113).
+</ParamField>
+
+<ParamField path="NODE_ENV" type="string" default="development">
+  Node environment setting. When set to `production`, timestamps are disabled in console logs.
+  
+  ```bash
+  NODE_ENV=production
+  ```
+  
+  This affects the ColorConsole timestamp behavior (src/index.js:15).
+</ParamField>
+
+## Example Configuration
+
+Create a `.env` file in your project root:
+
+<CodeGroup>
+```bash .env (All Providers)
+PORT=11434
+OPENAI_API_KEY=sk-proj-...
+GEMINI_API_KEY=AIzaSy...
+OPENROUTER_API_KEY=sk-or-v1-...
+NODE_ENV=production
+```
+
+```bash .env (OpenAI Only)
+PORT=11434
+OPENAI_API_KEY=sk-proj-...
+```
+
+```bash .env (Gemini Only)
+PORT=11434
+GEMINI_API_KEY=AIzaSy...
+```
+
+```bash .env (OpenRouter Only)
+PORT=11434
+OPENROUTER_API_KEY=sk-or-v1-...
+OPENROUTER_API_URL=https://openrouter.ai/api/v1
+```
+</CodeGroup>
+
+## Loading Environment Variables
+
+The proxy automatically loads environment variables using `dotenv` at startup (src/index.js:18). Make sure your `.env` file is in the same directory where you run the proxy.
+
+<Note>
+  Environment variables set in your shell will override values in the `.env` file.
+</Note>
+
+## Verification
+
+When the proxy starts successfully, you'll see which providers are initialized:
+
+```bash
+🚀 Ollama Proxy with Streaming running on http://localhost:11434
+🔑 Providers: openai, google, openrouter
+📋 Available models: gpt-4o-mini, gemini-2.5-flash, deepseek-r1
+```
+
+This output confirms which API keys were detected and which providers are available (src/index.js:560-562).

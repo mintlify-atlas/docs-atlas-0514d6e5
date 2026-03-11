@@ -1,0 +1,249 @@
+---
+title: Custom Models
+description: Configure custom model mappings with models.json
+---
+
+The Ollama API Proxy uses a `models.json` file to define which models are available and how they map to AI providers. This allows you to customize model names, add new models, and control which provider each model uses.
+
+## Configuration File
+
+Create a `models.json` file in your project root (the same directory where you run the proxy). If this file doesn't exist, the proxy will use built-in defaults (src/index.js:128-149).
+
+<Note>
+  The proxy automatically loads `models.json` from the current working directory at startup (src/index.js:124).
+</Note>
+
+## File Format
+
+The `models.json` file is a JSON object where each key is a model name and each value contains the provider and model identifier.
+
+### Structure
+
+```json
+{
+  "model-name": {
+    "provider": "provider-name",
+    "model": "actual-model-id"
+  }
+}
+```
+
+<ParamField path="model-name" type="string">
+  The name you'll use when making API requests. This can be any string you choose.
+</ParamField>
+
+<ParamField path="provider" type="string" required>
+  The AI provider to use. Must be one of:
+  - `openai` - Uses OpenAI API (requires `OPENAI_API_KEY`)
+  - `google` - Uses Google Gemini API (requires `GEMINI_API_KEY`)
+  - `openrouter` - Uses OpenRouter API (requires `OPENROUTER_API_KEY`)
+</ParamField>
+
+<ParamField path="model" type="string" required>
+  The actual model identifier used by the provider.
+  - For OpenAI: `gpt-4o`, `gpt-4o-mini`, `gpt-4.1-mini`, etc.
+  - For Google: `gemini-2.5-flash`, `gemini-2.5-flash-lite`, etc.
+  - For OpenRouter: `deepseek/deepseek-r1-0528:free`, `moonshotai/kimi-k2:free`, etc.
+</ParamField>
+
+## Example Configuration
+
+Here's the actual `models.json` from the repository:
+
+<CodeGroup>
+```json models.json (Full Example)
+{
+    "gpt-4o-mini": {
+        "provider": "openai",
+        "model": "gpt-4o-mini"
+    },
+    "gpt-4.1-mini": {
+        "provider": "openai",
+        "model": "gpt-4.1-mini"
+    },
+    "gpt-4.1-nano": {
+        "provider": "openai",
+        "model": "gpt-4.1-nano"
+    },
+    "gpt-4o": {
+        "provider": "openai",
+        "model": "gpt-4o"
+    },
+    "gpt-5-nano": {
+        "provider": "openai",
+        "model": "gpt-5-nano"
+    },    
+    "gemini-2.5-flash": {
+        "provider": "google",
+        "model": "gemini-2.5-flash"
+    },
+    "gemini-2.5-flash-lite": {
+        "provider": "google",
+        "model": "gemini-2.5-flash-lite"
+    },
+    "deepseek-r1": {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-r1-0528:free"
+    },
+    "kimi-k2": {
+        "provider": "openrouter",
+        "model": "moonshotai/kimi-k2:free"
+    }
+}
+```
+
+```json models.json (OpenAI Only)
+{
+    "gpt-4o": {
+        "provider": "openai",
+        "model": "gpt-4o"
+    },
+    "gpt-4o-mini": {
+        "provider": "openai",
+        "model": "gpt-4o-mini"
+    }
+}
+```
+
+```json models.json (Custom Names)
+{
+    "fast": {
+        "provider": "openai",
+        "model": "gpt-4o-mini"
+    },
+    "smart": {
+        "provider": "openai",
+        "model": "gpt-4o"
+    },
+    "reasoning": {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-r1-0528:free"
+    }
+}
+```
+</CodeGroup>
+
+## Built-in Defaults
+
+If no `models.json` file exists, the proxy uses these built-in models (src/index.js:133-143):
+
+```json
+{
+    "gpt-4o-mini": { "provider": "openai", "model": "gpt-4o-mini" },
+    "gpt-4.1-mini": { "provider": "openai", "model": "gpt-4.1-mini" },
+    "gpt-4.1-nano": { "provider": "openai", "model": "gpt-4.1-nano" },
+    "gpt-4o": { "provider": "openai", "model": "gpt-4o" },
+    "gemini-2.5-flash": { "provider": "google", "model": "gemini-2.5-flash" },
+    "gemini-2.5-flash-lite": { "provider": "google", "model": "gemini-2.5-flash-lite" },
+    "deepseek-r1": { "provider": "openrouter", "model": "deepseek/deepseek-r1-0528:free" }
+}
+```
+
+<Note>
+  When using built-in models, you'll see: `ℹ️ Using built-in models. Create a models.json file to customize.`
+</Note>
+
+## Model Validation
+
+When you make an API request, the proxy validates that:
+
+1. The model name exists in `models.json` (src/index.js:188-189)
+2. The required provider is available (has an API key set) (src/index.js:191-193)
+
+<Warning>
+  If a model is defined but its provider isn't configured, you'll get an error:
+  
+  ```json
+  {
+    "error": "Provider openai not available"
+  }
+  ```
+  
+  Make sure the corresponding API key environment variable is set.
+</Warning>
+
+## Listing Available Models
+
+You can query which models are currently available using the `/api/tags` endpoint:
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+This returns only models whose providers have valid API keys configured (src/index.js:494-504).
+
+```json
+{
+  "models": [
+    {
+      "name": "gpt-4o-mini",
+      "model": "gpt-4o-mini",
+      "modified_at": "2026-03-11T10:30:00.000Z",
+      "size": 1000000000,
+      "digest": "sha256:gpt4omini"
+    }
+  ]
+}
+```
+
+## Adding New Models
+
+To add a new model, simply add an entry to `models.json` and restart the proxy:
+
+### OpenAI Model
+
+```json
+{
+  "gpt-4-turbo": {
+    "provider": "openai",
+    "model": "gpt-4-turbo-preview"
+  }
+}
+```
+
+### OpenRouter Model
+
+```json
+{
+  "claude-opus": {
+    "provider": "openrouter",
+    "model": "anthropic/claude-3-opus"
+  }
+}
+```
+
+### Gemini Model
+
+```json
+{
+  "gemini-pro": {
+    "provider": "google",
+    "model": "gemini-1.5-pro"
+  }
+}
+```
+
+<Note>
+  Make sure the model ID matches the actual model identifier from the provider's documentation.
+</Note>
+
+## Startup Output
+
+When the proxy loads your `models.json` successfully, you'll see:
+
+```bash
+✅ Loaded models from /path/to/your/models.json
+🚀 Ollama Proxy with Streaming running on http://localhost:11434
+🔑 Providers: openai, google, openrouter
+📋 Available models: gpt-4o-mini, gemini-2.5-flash, deepseek-r1
+```
+
+If there's an error loading the file:
+
+```bash
+❌ Error loading models.json: Unexpected token in JSON at position 42
+```
+
+<Warning>
+  JSON syntax errors in `models.json` will cause the proxy to exit immediately (src/index.js:146-148).
+</Warning>

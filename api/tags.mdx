@@ -1,0 +1,147 @@
+---
+title: Tags API
+description: List available models in the Ollama API Proxy
+---
+
+## GET /api/tags
+
+Retrieve a list of all available models based on configured providers. Only models whose providers have valid API keys configured will be returned.
+
+### Request
+
+This endpoint accepts no parameters. Simply send a GET request:
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+### Response
+
+<ResponseField name="models" type="array">
+  Array of available model objects.
+  
+  <ResponseField name="models[].name" type="string">
+    The model identifier used in API requests.
+  </ResponseField>
+  
+  <ResponseField name="models[].model" type="string">
+    The model name (same as `name`).
+  </ResponseField>
+  
+  <ResponseField name="models[].modified_at" type="string">
+    ISO 8601 timestamp (generated at request time for compatibility).
+  </ResponseField>
+  
+  <ResponseField name="models[].size" type="number">
+    Model size in bytes (placeholder value: 1000000000).
+  </ResponseField>
+  
+  <ResponseField name="models[].digest" type="string">
+    SHA-256 digest of the model name (for Ollama compatibility).
+  </ResponseField>
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash Request
+curl http://localhost:11434/api/tags
+```
+
+```json Response
+{
+  "models": [
+    {
+      "name": "gpt-4o-mini",
+      "model": "gpt-4o-mini",
+      "modified_at": "2026-03-11T10:30:00.000Z",
+      "size": 1000000000,
+      "digest": "sha256:gpt4omini"
+    },
+    {
+      "name": "gpt-4o",
+      "model": "gpt-4o",
+      "modified_at": "2026-03-11T10:30:00.000Z",
+      "size": 1000000000,
+      "digest": "sha256:gpt4o"
+    },
+    {
+      "name": "gemini-2.5-flash",
+      "model": "gemini-2.5-flash",
+      "modified_at": "2026-03-11T10:30:00.000Z",
+      "size": 1000000000,
+      "digest": "sha256:gemini25flash"
+    },
+    {
+      "name": "deepseek-r1",
+      "model": "deepseek-r1",
+      "modified_at": "2026-03-11T10:30:00.000Z",
+      "size": 1000000000,
+      "digest": "sha256:deepseekr1"
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+## Model Configuration
+
+The available models are determined by:
+
+1. **Environment Variables**: API keys for providers (OpenAI, Google, OpenRouter)
+2. **models.json**: Custom model configuration file (optional)
+3. **Built-in Models**: Default models when no `models.json` exists
+
+### Built-in Models
+
+If no `models.json` file exists, these built-in models are available:
+
+- **OpenAI**: `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-4.1-nano`, `gpt-4o`
+- **Google**: `gemini-2.5-flash`, `gemini-2.5-flash-lite`
+- **OpenRouter**: `deepseek-r1`
+
+### Custom Model Configuration
+
+Create a `models.json` file in your working directory to customize available models:
+
+```json models.json
+{
+  "gpt-4o-mini": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "claude-3-5-sonnet": {
+    "provider": "openrouter",
+    "model": "anthropic/claude-3.5-sonnet"
+  },
+  "custom-model-alias": {
+    "provider": "openai",
+    "model": "gpt-4-turbo"
+  }
+}
+```
+
+<Note>
+  Only models whose providers have valid API keys configured via environment variables will be returned. If a provider's API key is missing, its models will be filtered out.
+</Note>
+
+## Implementation Details
+
+The endpoint implementation (from src/index.js:494-505):
+
+```javascript
+'GET /api/tags': (request, response) => {
+    const availableModels = Object.entries(models)
+        .filter(([name, config]) => providers[config.provider])
+        .map(([name]) => ({
+            name,
+            model: name,
+            modified_at: new Date().toISOString(),
+            size: 1000000000,
+            digest: `sha256:${name.replace(/[^a-zA-Z0-9]/g, '')}`,
+        }));
+    sendJSON(response, { models: availableModels });
+}
+```
