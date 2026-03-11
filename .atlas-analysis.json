@@ -1,0 +1,79 @@
+{
+  "projectType": "api-service",
+  "projectName": "Ollama API Proxy",
+  "projectDescription": "Multi-provider proxy server that translates Ollama API requests to OpenAI, Gemini, Deepseek, and OpenRouter formats.",
+  "theme": "aspen",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Installation",
+            "pages": [
+              "installation/npm",
+              "installation/npx",
+              "installation/docker"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment-variables",
+              "configuration/custom-models"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/jetbrains-ai-assistant",
+              "guides/supported-models",
+              "guides/vision-support"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/overview",
+              "api/chat",
+              "api/generate",
+              "api/tags",
+              "api/version"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-provider LLM proxy (OpenAI, Gemini, OpenRouter)",
+    "Ollama API compatibility",
+    "Support for free-tier APIs (Deepseek R1, Kimi K2)",
+    "Streaming and non-streaming responses",
+    "Vision/image support",
+    "Custom model configuration",
+    "JetBrains AI Assistant integration"
+  ],
+  "publicApiSurface": [
+    "GET /",
+    "GET /api/version",
+    "GET /api/tags",
+    "POST /api/chat",
+    "POST /api/generate"
+  ]
+}
