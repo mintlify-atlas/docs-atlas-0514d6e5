@@ -21,6 +21,26 @@ The Ollama API Proxy does not require authentication. However, you must configur
 
 The Ollama API Proxy provides the following endpoints:
 
+### Health Check
+
+**GET /**
+
+Simple health check endpoint that returns a plain text message indicating the proxy is running.
+
+```bash
+curl http://localhost:11434/
+```
+
+Response:
+```
+Ollama is running in proxy mode.
+```
+
+This endpoint is useful for:
+- Verifying the proxy server is running
+- Basic connectivity tests
+- Health checks in orchestration systems
+
 ### Chat Generation
 
 **POST /api/chat**
